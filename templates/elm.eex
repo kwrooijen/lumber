@@ -1,0 +1,147 @@
+module Gen.Phoenix exposing (..)
+
+-- THIS FILE IS GENERATED
+-- DO NOT EDIT
+
+import Json.Encode as Encode exposing (object)
+import Json.Decode as Decode exposing (Decoder, succeed, field, map2)
+import Phoenix.Socket
+import Phoenix.Channel
+
+type alias PhoenixBuild =
+    ( String, String, Encode.Value )
+
+joinChannels :
+    String
+    -> (String -> msg)
+    -> (String -> msg)
+    -> Phoenix.Socket.Socket msg
+    -> ( Phoenix.Socket.Socket msg, Cmd (Phoenix.Socket.Msg msg) )
+joinChannels addition join leave phoenixSocket =
+    let
+        channels =
+            [<%= Lumber.Gen.Elm.channels %>] |> List.map (\x -> x ++ ":" ++ addition)
+    in
+        List.foldl (phoenixJoin join leave) ( phoenixSocket, Cmd.none ) channels
+
+
+phoenixJoin :
+    (String -> msg)
+    -> (String -> msg)
+    -> String
+    -> ( Phoenix.Socket.Socket msg, Cmd (Phoenix.Socket.Msg msg) )
+    -> ( Phoenix.Socket.Socket msg, Cmd (Phoenix.Socket.Msg msg) )
+phoenixJoin join leave channel ( phoenixSocket, cmds ) =
+    let
+        phxChannel =
+            Phoenix.Channel.init channel
+                |> Phoenix.Channel.onJoin (always (join channel))
+                |> Phoenix.Channel.onClose (always (leave channel))
+
+        ( p, newcmds ) =
+            Phoenix.Socket.join phxChannel phoenixSocket
+    in
+        ( p, Cmd.batch [ newcmds, cmds ] )
+
+
+socketOn : String -> (GenPhoenix -> msg) -> Phoenix.Socket.Socket msg -> Phoenix.Socket.Socket msg
+socketOn addition msg value =
+    value
+    |> <%= Lumber.Gen.Elm.socket_on() %>
+
+
+type GenPhoenix
+    = <%= Lumber.Gen.Elm.gen_phoenix_type() %>
+
+type alias PhoenixTopic =
+    { event : String, topic : String }
+
+phoenixTopicDecoder : Decoder PhoenixTopic
+phoenixTopicDecoder =
+    succeed PhoenixTopic
+        |: ("event" := Decode.string)
+        |: ("topic" := Decode.string)
+
+
+maybeDecode : Decoder a -> Decoder (Maybe a)
+maybeDecode value =
+    Decode.oneOf [ Decode.null Nothing, Decode.map Just value ]
+
+maybeEncode : (a -> Encode.Value) -> Maybe a -> Encode.Value
+maybeEncode encoder obj =
+    case obj of
+        Nothing ->
+            Encode.null
+
+        Just a ->
+            encoder a
+
+(:=) : String -> Decoder a -> Decoder a
+(:=) =
+    field
+
+(|:) : Decoder (a -> b) -> Decoder a -> Decoder b
+(|:) =
+    map2 (<|)
+
+type PhoenixChannelResult
+    =
+    PhoenixMessageError { payload : Encode.Value, message : Maybe String, channel : Maybe String, event : Maybe String} |
+    <%= Lumber.Gen.Elm.result_types |> Enum.join(" | ") %>
+
+
+<%= Enum.map Murk.all_signatures, fn({name, fields}) -> %>
+type alias <%= Lumber.Gen.Elm.normalize_record(name) %> =
+    { <%= Lumber.Gen.Elm.record_fields(fields) %> }
+<% end %>
+
+
+<%= Enum.map Murk.all_signatures, fn({name, fields}) -> %>
+<% normal_name = name |> Lumber.Gen.Elm.normalize_record %>
+encode<%= normal_name %> : <%= normal_name %> -> Encode.Value
+encode<%= normal_name %> obj =
+    object
+        [
+        <%= Lumber.Gen.Elm.fields_to_encode(fields) %>
+        ]
+<% end %>
+
+<%= Enum.map Lumber.all_input_channels, fn({_module, {channel, list}}) -> %>
+  <%= Enum.map list, fn({event, record}) -> %>
+    <% name = record |> Lumber.Gen.Elm.normalize_record %>
+build<%= name %> : <%= name %> -> String -> (String, String, Encode.Value)
+build<%= name %> obj addition =
+  ("<%= channel %>" ++ ":" ++ addition, "<%= event %>", encode<%= name %> obj)
+  <% end %>
+<% end %>
+
+<%= Enum.map Murk.all_signatures, fn({name, fields}) -> %>
+<% normal_name = name |> Lumber.Gen.Elm.normalize_record %>
+decode<%= normal_name %> : Decoder <%= normal_name %>
+decode<%= normal_name %> =
+    succeed <%= normal_name %>
+      |: <%= Lumber.Gen.Elm.fields_to_decode(fields) %>
+<% end %>
+
+---------------------------------------------------------------------------------
+--
+---------------------------------------------------------------------------------
+
+parse : GenPhoenix -> PhoenixChannelResult
+parse msg =
+    case msg of
+<%= Enum.map Lumber.all_output_channels, &Lumber.Gen.Elm.to_parse/1 %>
+
+
+decodeGeneric : (String, String) -> (a -> PhoenixChannelResult) -> Decoder a -> Encode.Value -> PhoenixChannelResult
+decodeGeneric (channel, event) jsonResult decoder payload =
+    case Decode.decodeValue decoder payload of
+        Ok val ->
+            jsonResult val
+
+        Err message ->
+              PhoenixMessageError
+              { payload = payload
+              , message = Just message
+              , channel = Just channel
+              , event   = Just event }
