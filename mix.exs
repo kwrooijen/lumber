@@ -3,7 +3,7 @@ defmodule Lumber.Mixfile do
 
   def project do
     [app: :lumber,
-     version: "0.1.0",
+     version: "0.1.1",
      elixir: "~> 1.4-rc",
      build_embedded: Mix.env == :prod,
      start_permanent: Mix.env == :prod,
@@ -28,7 +28,7 @@ defmodule Lumber.Mixfile do
   end
 
   defp package do
-    [files: ["lib", "mix.exs", "README.md", "LICENSE", "config", "templates"],
+    [files: ["lib", "mix.exs", "README.md", "LICENSE", "config", "priv"],
      maintainers: ["Kevin W. van Rooijen"],
      licenses: ["GPL3"],
      links: %{"GitHub": "https://github.com/kwrooijen/lumber"}]
