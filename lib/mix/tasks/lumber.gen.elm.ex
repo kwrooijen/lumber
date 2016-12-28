@@ -2,6 +2,7 @@ defmodule Mix.Tasks.Lumber.Gen.Elm do
   use Mix.Task
 
   def run(args) do
+    Mix.Task.run "compile"
     file = Application.app_dir(:lumber, "priv/templates/elm.eex")
     eval = EEx.eval_file(file)
     path = get_file_path(args)
