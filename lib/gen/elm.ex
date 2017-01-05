@@ -48,10 +48,11 @@ defmodule Lumber.Gen.Elm do
   defp field_to_string({name, type, opts}) do
     name = name
     |> Atom.to_string
+    |> lower_camelize
     type = type
     |> parse_type
     |> add_maybe(opts[:required])
-    "#{name} : #{type}"
+    "\n    #{name} : #{type}"
   end
 
   def to_parse({_mod, {channel, fields}}) do
@@ -91,7 +92,8 @@ defmodule Lumber.Gen.Elm do
 
   def field_to_encode({name, type, opts}) do
     type = type |> type_to_encoder(opts)
-    "( \"#{name}\", #{type} obj.#{name})"
+    name_camelized = name |> lower_camelize
+    "\n    ( \"#{name}\", #{type} obj.#{name_camelized})"
   end
 
   def type_to_encoder([type], opts) do
@@ -184,5 +186,18 @@ defmodule Lumber.Gen.Elm do
     |> Atom.to_string
     |> String.replace(".", "")
     Enum.reduce(replaces, record, fn({old, new}, acc) -> String.replace(acc, old, new) end)
+  end
+
+  defp lower_camelize(""), do: ""
+  defp lower_camelize(atom) when is_atom(atom) do
+    atom
+    |> Atom.to_string
+    |> lower_camelize
+  end
+  defp lower_camelize(string) do
+      {head, tail} = string
+      |> Macro.camelize
+      |> String.split_at(1)
+      String.downcase(head) <> tail
   end
 end
