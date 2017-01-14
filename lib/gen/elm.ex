@@ -1,6 +1,6 @@
 defmodule Lumber.Gen.Elm do
   @opts Application.get_env(:lumber, :elm, [])
-  @fields [:string, :float, :list, :bool]
+  @fields [:string, :float, :list]
 
   def channels do
     Lumber.channels
@@ -108,6 +108,10 @@ defmodule Lumber.Gen.Elm do
     "Encode.int"
     |> add_maybe_encoder(opts[:required])
   end
+  def type_to_encoder(:boolean, opts) do
+    "Encode.bool"
+    |> add_maybe_encoder(opts[:required])
+  end
   def type_to_encoder(type, opts) when type in @fields do
     "Encode.#{type}"
     |> add_maybe_encoder(opts[:required])
@@ -128,6 +132,10 @@ defmodule Lumber.Gen.Elm do
   end
   def type_to_decoder(:integer, opts) do
     "Decode.int"
+    |> add_maybe_decoder(opts[:required])
+  end
+  def type_to_decoder(:boolean, opts)  do
+    "Decode.bool"
     |> add_maybe_decoder(opts[:required])
   end
   def type_to_decoder(type, opts) when type in @fields do
