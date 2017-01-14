@@ -93,13 +93,19 @@ defmodule Lumber do
     quote do
       unquote(def_lumber_input({event, module}))
       def handle_in(unquote(event), payload_var, unquote(socket)) do
-        struct = unquote(module).new!(payload_var)
-        if struct |> Murk.valid? do
-          unquote(payload) = struct
-          unquote(block)
-        else
-          Logger.error("Invalid defin struct #{inspect struct}")
-          {:noreply, unquote(socket)}
+        case unquote(module).new(payload_var) do
+          {:ok, struct} ->
+            try do
+              unquote(payload) = struct
+              unquote(block)
+            rescue
+              error ->
+                Logger.error("Runtime error defin #{inspect error}")
+                {:noreply, unquote(socket)}
+            end
+          {:error, reason} ->
+            Logger.error("Invalid defin struct #{inspect reason}")
+            {:noreply, unquote(socket)}
         end
       end
     end
@@ -115,11 +121,11 @@ defmodule Lumber do
       Module.put_attribute(__MODULE__, :phoenix_intercepts, [unquote(event) | intercepts])
       unquote(def_lumber_output({event, module}))
       def handle_out(unquote(event), payload, socket) do
-        struct = unquote(module).new!(payload)
-        if Murk.valid?(struct) do
-          push(socket, unquote(event), struct)
-        else
-          Logger.error("Invalid defout struct #{inspect struct}")
+        case unquote(module).new(payload) do
+          {:ok, struct} ->
+            push(socket, unquote(event), struct)
+          {:error, reason} ->
+            Logger.error("Invalid defout struct #{inspect reason}")
         end
         {:noreply, socket}
       end
@@ -132,13 +138,19 @@ defmodule Lumber do
       Module.put_attribute(__MODULE__, :phoenix_intercepts, [unquote(event) | intercepts])
       unquote(def_lumber_output({event, module}))
       def handle_out(unquote(event), payload_var, unquote(socket)) do
-        struct = unquote(module).new!(payload_var)
-        if struct |> Murk.valid? do
-          unquote(payload) = struct
-          unquote(block)
-        else
-          Logger.error("Invalid defout struct #{inspect struct}")
-          {:noreply, unquote(socket)}
+        case unquote(module).new(payload_var) do
+          {:ok, struct} ->
+            try do
+              unquote(payload) = struct
+              unquote(block)
+            rescue
+              error ->
+                Logger.error("Runtime error defout #{inspect error}")
+                {:noreply, unquote(socket)}
+            end
+          {:error, reason} ->
+            Logger.error("Invalid defout struct #{inspect reason}")
+            {:noreply, unquote(socket)}
         end
       end
     end
