@@ -61,7 +61,7 @@ defmodule Lumber.Gen.Elm do
   end
   def to_parse_item(channel, {event, record}) do
     record = record |> normalize_record
-    name = "#{channel |> String.capitalize}#{event |> normalize_event}"
+    name = "#{channel |> Macro.camelize}#{event |> normalize_event}"
       """
               Phx#{record} payload ->
                   decodeGeneric
@@ -179,6 +179,7 @@ defmodule Lumber.Gen.Elm do
   defp output_to_string({event, record}, channel) do
     event = event |> normalize_event
     record = record |> normalize_record
+    channel = channel |> Macro.camelize
     "#{channel}#{event} #{record}"
   end
 
