@@ -13,16 +13,20 @@ defmodule Lumber.Gen.Elm do
     |> Enum.map(&(elem(&1, 1)))
     |> Enum.map(&make_socket/1)
     |> List.flatten
-    |> Enum.join("    |> ")
+    |> Enum.join(", ")
   end
 
   def make_socket({channel, list}) do
-    list |> Enum.map(fn({event, record}) ->
+    init = """
+    Phoenix.Channel.init ("#{channel}:" ++ addition)
+    """
+    list = list |> Enum.map(fn({event, record}) ->
       record = record |> normalize_record
       """
-      Phoenix.Socket.on "#{event}" ("#{channel}:" ++ addition) (msg << Phx#{record})
+      Phoenix.Channel.on "#{event}" (msg << Phx#{record})
       """
     end)
+    [init | list] |> Enum.join(" |> ")
   end
 
   def gen_phoenix_type do

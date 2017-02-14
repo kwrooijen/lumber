@@ -5,49 +5,23 @@ module Gen.Phoenix exposing (..)
 
 import Json.Encode as Encode exposing (object)
 import Json.Decode as Decode exposing (Decoder, succeed, field, map2)
-import Phoenix.Socket
 import Phoenix.Channel
+import Phoenix.Push
+import Phoenix
+
 
 type alias PhoenixBuild =
     ( String, String, Encode.Value )
 
-joinChannels :
-    String
-    -> (String -> msg)
-    -> (String -> msg)
-    -> Phoenix.Socket.Socket msg
-    -> ( Phoenix.Socket.Socket msg, Cmd (Phoenix.Socket.Msg msg) )
-joinChannels addition join leave phoenixSocket =
-    let
-        channels =
-            [<%= Lumber.Gen.Elm.channels %>] |> List.map (\x -> x ++ ":" ++ addition)
-    in
-        List.foldl (phoenixJoin join leave) ( phoenixSocket, Cmd.none ) channels
+send : PhoenixBuild -> String -> String -> Cmd msg
+send ( channel, msg, obj ) addition location =
+    Phoenix.Push.init (channel ++ addition) msg
+        |> Phoenix.Push.withPayload obj
+        |> Phoenix.push location
 
-
-phoenixJoin :
-    (String -> msg)
-    -> (String -> msg)
-    -> String
-    -> ( Phoenix.Socket.Socket msg, Cmd (Phoenix.Socket.Msg msg) )
-    -> ( Phoenix.Socket.Socket msg, Cmd (Phoenix.Socket.Msg msg) )
-phoenixJoin join leave channel ( phoenixSocket, cmds ) =
-    let
-        phxChannel =
-            Phoenix.Channel.init channel
-                |> Phoenix.Channel.onJoin (always (join channel))
-                |> Phoenix.Channel.onClose (always (leave channel))
-
-        ( p, newcmds ) =
-            Phoenix.Socket.join phxChannel phoenixSocket
-    in
-        ( p, Cmd.batch [ newcmds, cmds ] )
-
-
-socketOn : String -> (GenPhoenix -> msg) -> Phoenix.Socket.Socket msg -> Phoenix.Socket.Socket msg
-socketOn addition msg value =
-    value
-    |> <%= Lumber.Gen.Elm.socket_on() %>
+socketOn : String -> (GenPhoenix -> c) -> List (Phoenix.Channel.Channel c)
+socketOn addition msg =
+    [ <%= Lumber.Gen.Elm.socket_on() %> ]
 
 
 type GenPhoenix
@@ -109,9 +83,9 @@ encode<%= normal_name %> obj =
 <%= Enum.map Lumber.all_input_channels, fn({_module, {channel, list}}) -> %>
   <%= Enum.map list, fn({event, record}) -> %>
     <% name = record |> Lumber.Gen.Elm.normalize_record %>
-build<%= name %> : <%= name %> -> String -> (String, String, Encode.Value)
-build<%= name %> obj addition =
-  ("<%= channel %>" ++ ":" ++ addition, "<%= event %>", encode<%= name %> obj)
+build<%= name %> : <%= name %> -> (String, String, Encode.Value)
+build<%= name %> obj =
+  ("<%= channel %>:", "<%= event %>", encode<%= name %> obj)
   <% end %>
 <% end %>
 
