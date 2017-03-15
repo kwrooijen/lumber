@@ -100,11 +100,11 @@ defmodule Lumber do
               unquote(block)
             rescue
               error ->
-                Logger.error("Runtime error defin #{inspect error}")
+                Logger.error("#{unquote(module)}/#{unquote(event)} : Runtime error defin #{inspect error}")
                 {:noreply, unquote(socket)}
             end
           {:error, reason} ->
-            Logger.error("Invalid defin struct #{inspect reason}")
+            Logger.error("#{unquote(module)}/#{unquote(event)} : Invalid defin struct #{inspect reason}")
             {:noreply, unquote(socket)}
         end
       end
@@ -125,7 +125,7 @@ defmodule Lumber do
           {:ok, struct} ->
             push(socket, unquote(event), struct)
           {:error, reason} ->
-            Logger.error("Invalid defout struct #{inspect reason}")
+            Logger.error("#{unquote(module)}/#{unquote(event)} : Invalid defout struct #{inspect reason}")
         end
         {:noreply, socket}
       end
@@ -145,11 +145,11 @@ defmodule Lumber do
               unquote(block)
             rescue
               error ->
-                Logger.error("Runtime error defout #{inspect error}")
+                Logger.error("#{unquote(module)}/#{unquote(event)} : Runtime error defout #{inspect error}")
                 {:noreply, unquote(socket)}
             end
           {:error, reason} ->
-            Logger.error("Invalid defout struct #{inspect reason}")
+            Logger.error("#{unquote(module)}/#{unquote(event)} : Invalid defout struct #{inspect reason}")
             {:noreply, unquote(socket)}
         end
       end
